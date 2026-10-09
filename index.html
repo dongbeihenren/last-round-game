@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>请输入密码</title>
+<style>
+  :root{
+    --bg:#0d1017;
+    --card:rgba(255,255,255,.045);
+    --line:rgba(255,255,255,.09);
+    --text:#e8e6e1;
+    --dim:#8b8f99;
+    --gold:#e3bd7a;
+    --blue:#7fa8d8;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    min-height:100vh;min-height:100dvh;
+    display:flex;
+    padding:44px 16px;
+    background:
+      radial-gradient(1100px 560px at 50% -8%, rgba(227,189,122,.10), transparent 62%),
+      radial-gradient(760px 460px at 85% 108%, rgba(127,168,216,.07), transparent 62%),
+      var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .stage{margin:auto;width:100%;max-width:520px}
+
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:22px;
+    padding:30px 24px;
+    backdrop-filter:blur(14px);
+    -webkit-backdrop-filter:blur(14px);
+    box-shadow:0 24px 70px -24px rgba(0,0,0,.85), inset 0 1px 0 rgba(255,255,255,.05);
+  }
+
+  /* ---------- 游戏卡片 ---------- */
+  .lock{
+    width:52px;height:52px;
+    display:grid;place-items:center;
+    border-radius:16px;
+    background:rgba(227,189,122,.10);
+    border:1px solid rgba(227,189,122,.24);
+    color:var(--gold);
+    margin-bottom:20px;
+  }
+  .game-card h1{
+    font-size:21px;font-weight:600;letter-spacing:.04em;
+    margin:0 0 8px;
+  }
+  .game-card .sub{
+    font-size:13.5px;color:var(--dim);line-height:1.75;
+    margin:0 0 24px;
+  }
+
+  .input-row{display:flex;gap:10px}
+  #guessInput{
+    flex:1;min-width:0;
+    background:rgba(0,0,0,.30);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:13px 10px;
+    color:var(--text);
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    font-size:26px;
+    letter-spacing:.52em;
+    text-indent:.52em;
+    text-align:center;
+    outline:none;
+    transition:border-color .22s, box-shadow .22s, background .22s;
+  }
+  #guessInput::placeholder{color:rgba(255,255,255,.13)}
+  #guessInput:focus{
+    border-color:rgba(227,189,122,.55);
+    background:rgba(0,0,0,.42);
+    box-shadow:0 0 0 4px rgba(227,189,122,.09);
+  }
+  #submitBtn{
+    flex:none;
+    padding:0 22px;
+    border:none;border-radius:14px;
+    font-family:inherit;font-size:15px;font-weight:600;letter-spacing:.04em;
+    color:#241a08;
+    background:linear-gradient(180deg,#eccf95,#d2a75f);
+    cursor:pointer;
+    transition:transform .12s, filter .2s, box-shadow .2s;
+    box-shadow:0 8px 22px -10px rgba(227,189,122,.7);
+  }
+  #submitBtn:hover{filter:brightness(1.06)}
+  #submitBtn:active{transform:scale(.96)}
+
+  .msg{
+    min-height:19px;margin:12px 0 0;
+    font-size:13px;text-align:center;color:#e2907e;
+    opacity:0;transition:opacity .2s;
+  }
+  .msg.show{opacity:1}
+
+  .legend{
+    display:flex;gap:18px;flex-wrap:wrap;
+    margin:22px 0 0;padding-top:18px;
+    border-top:1px dashed rgba(255,255,255,.09);
+    font-size:12.5px;color:var(--dim);
+  }
+  .legend span{display:flex;align-items:center;gap:7px}
+  .legend i{
+    font-style:normal;font-weight:700;font-size:11px;
+    padding:3px 8px;border-radius:999px;
+  }
+  .legend i.b{background:rgba(227,189,122,.16);color:var(--gold);border:1px solid rgba(227,189,122,.3)}
+  .legend i.c{background:rgba(127,168,216,.14);color:var(--blue);border:1px solid rgba(127,168,216,.28)}
+
+  #history{
+    list-style:none;margin:20px 0 0;padding:0;
+    display:flex;flex-direction:column;gap:8px;
+    max-height:290px;overflow-y:auto;
+    scrollbar-width:thin;
+    scrollbar-color:rgba(255,255,255,.14) transparent;
+  }
+  #history::-webkit-scrollbar{width:5px}
+  #history::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14);border-radius:99px}
+
+  .hist-item{
+    display:flex;align-items:center;gap:12px;
+    padding:9px 12px;
+    background:rgba(0,0,0,.24);
+    border:1px solid rgba(255,255,255,.05);
+    border-radius:13px;
+    animation:slideIn .32s cubic-bezier(.2,.9,.3,1) both;
+  }
+  @keyframes slideIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+
+  .hist-index{
+    flex:none;width:16px;text-align:center;
+    font-size:11px;color:var(--dim);
+    font-variant-numeric:tabular-nums;
+  }
+  .hist-guess{display:flex;gap:5px}
+  .hist-guess b{
+    width:26px;height:30px;
+    display:grid;place-items:center;
+    border-radius:8px;
+    background:rgba(255,255,255,.065);
+    font-family:ui-monospace,Menlo,monospace;
+    font-size:15px;font-weight:600;color:#dcd8d1;
+  }
+  .hist-fb{margin-left:auto;display:flex;gap:6px;flex:none}
+  .tag{
+    font-style:normal;font-size:11.5px;font-weight:700;
+    padding:4px 9px;border-radius:999px;
+    letter-spacing:.02em;white-space:nowrap;
+  }
+  .tag.b{background:rgba(227,189,122,.16);color:var(--gold);border:1px solid rgba(227,189,122,.3)}
+  .tag.c{background:rgba(127,168,216,.14);color:var(--blue);border:1px solid rgba(127,168,216,.28)}
+  .tag.none{background:rgba(255,255,255,.05);color:var(--dim);border:1px solid rgba(255,255,255,.08)}
+
+  .shake{animation:shake .45s cubic-bezier(.36,.07,.19,.97) both}
+  @keyframes shake{
+    10%,90%{transform:translateX(-2px)}
+    20%,80%{transform:translateX(4px)}
+    30%,50%,70%{transform:translateX(-6px)}
+    40%,60%{transform:translateX(6px)}
+  }
+  .closing{animation:fadeOut .55s ease forwards}
+  @keyframes fadeOut{to{opacity:0;transform:scale(.96) translateY(-10px)}}
+
+  /* ---------- 信件卡片 ---------- */
+  .letter-card{
+    border-color:rgba(227,189,122,.22);
+    background:linear-gradient(180deg,rgba(255,255,255,.062),rgba(255,255,255,.028));
+    padding:34px 26px 28px;
+    animation:rise .85s cubic-bezier(.2,.85,.3,1) both;
+  }
+  @keyframes rise{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+
+  .letter-head{
+    display:flex;align-items:center;gap:9px;
+    font-size:11.5px;letter-spacing:.24em;
+    color:var(--gold);font-weight:600;
+    margin-bottom:24px;
+  }
+  .letter-head::after{
+    content:"";flex:1;height:1px;
+    background:linear-gradient(90deg,rgba(227,189,122,.35),transparent);
+  }
+  .letter-head .star{font-size:12px;letter-spacing:0}
+
+  .letter-card h2{
+    font-family:"Songti SC","Noto Serif SC",Georgia,serif;
+    font-size:19px;font-weight:600;letter-spacing:.05em;
+    color:#f0ead9;margin:0 0 20px;
+  }
+  .letter-card p{
+    font-family:"Songti SC","Noto Serif SC",Georgia,serif;
+    font-size:15.5px;line-height:2.05;
+    color:#d5d1c8;
+    letter-spacing:.02em;
+    margin:0 0 1.05em;
+  }
+  .letter-card p.hl{
+    font-size:17px;font-weight:700;
+    color:var(--gold);
+    text-align:center;
+    letter-spacing:.12em;
+    margin:1.8em 0;
+    text-shadow:0 0 26px rgba(227,189,122,.35);
+  }
+  .letter-card p.sign{
+    text-align:right;
+    color:#a9a49b;
+    font-size:14.5px;
+    margin-top:1.6em;
+  }
+  .letter-card .divider{
+    height:1px;margin:26px 0 20px;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.12),transparent);
+  }
+  .footline{
+    display:flex;align-items:center;justify-content:space-between;gap:14px;
+    font-size:12.5px;color:var(--dim);
+  }
+  .footline b{color:var(--gold);font-variant-numeric:tabular-nums}
+  #againBtn{
+    border:1px solid rgba(255,255,255,.12);
+    background:transparent;
+    color:var(--dim);
+    font-family:inherit;font-size:12.5px;
+    padding:7px 14px;border-radius:999px;
+    cursor:pointer;transition:.2s;
+  }
+  #againBtn:hover{color:var(--text);border-color:rgba(255,255,255,.26)}
+
+  @media (max-width:420px){
+    .card{padding:26px 18px;border-radius:19px}
+    #guessInput{font-size:23px;letter-spacing:.44em;text-indent:.44em}
+    #submitBtn{padding:0 17px;font-size:14px}
+    .letter-card{padding:28px 20px 24px}
+    .letter-card p{font-size:15px;line-height:1.98}
+  }
+</style>
+</head>
+<body>
+
+<div class="stage">
+
+  <!-- ============ 游戏卡片 ============ -->
+  <div class="card game-card" id="gameCard">
+    <div class="lock">
+      <svg viewBox="0 0 24 24" width="25" height="25" fill="none"
+           stroke="currentColor" stroke-width="1.6"
+           stroke-linecap="round" stroke-linejoin="round">
+        <rect x="4" y="10.5" width="16" height="10" rx="2.6"/>
+        <path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/>
+        <circle cx="12" cy="15.6" r="1.2" fill="currentColor" stroke="none"/>
+      </svg>
+    </div>
+
+    <h1>四位数密码</h1>
+    <p class="sub">
+      这里锁着一封信。<br>
+      猜出四位数字，就能打开它。
+    </p>
+
+    <div class="input-row">
+      <input id="guessInput" type="text" inputmode="numeric" maxlength="4"
+             placeholder="0000" autocomplete="off" autocorrect="off"
+             spellcheck="false" aria-label="输入四位数字">
+      <button id="submitBtn">试一下</button>
+    </div>
+    <p class="msg" id="msg"></p>
+
+    <div class="legend">
+      <span><i class="b">2B</i> 位置对</span>
+      <span><i class="c">1C</i> 数字对，位置错</span>
+    </div>
+
+    <ul id="history"></ul>
+  </div>
+
+  <!-- ============ 信件卡片 ============ -->
+  <div class="card letter-card" id="letterCard" hidden>
+    <div class="letter-head"><span class="star">✦</span> 密码正确</div>
+
+    <h2>亲爱的你：</h2>
+
+    <p>我试图用那个游戏的方式将此加密，不知道能不能成功。但当你看到这封信的时候，可能我已经成功把信和数字合二为一，也可能尝试了很多次还是失败了。</p>
+
+    <p>想要和别人制造羁绊，就要承受掉眼泪的风险。当你看到这封信，说明我已经下定决心和你分手了。</p>
+
+    <p>与其说我们熬不过这个冬天，不如说是让彼此从牢笼中解脱。这一千多天里，我们有太多次想放弃却舍不得，想继续又觉得没有意义。于是我在这个冬天前写下这封信。我只知道长痛不如短痛，两个年轻的肩膀撑不起永远的重量。我们谁都没有错，只是真的没有办法走到下一阶段了。</p>
+
+    <p>我有太多太多的遗憾，但有些东西说出来太小，放在心里又太大。就像情绪一样，我总在愤怒和包容之间反复横跳。有时候你突然发火，让我感觉像是对我家暴；每一件鸡毛蒜皮的小事都会惹你不开心，可过一会儿你的心情又好像没那么暴躁了。也许没有人是完美的，我学会了包容，不能只放大你的缺点，但也真心希望你以后能控制好情绪，别让结节变多。</p>
+
+    <p>每次去找你我都很怕那次见面是最后一面，所以我想尽可能多对你好一点，让你少花点钱，多给你买点东西。我怕真的分手后会留下遗憾，而我真的已经尽我所能了，这一点我不遗憾。</p>
+
+    <p>关于工作，我把一切都想得太简单了。原以为在沧州找个工作、做点事情很容易，没想到简历石沉大海。异地恋遇上经济下行和就业紧张，就宛如末日。这并不是我舍不得长春、舍不得朋友，其实我什么都舍得，包括家人。我本希望得到你家里的支持，但好像没有人支持我们。还好有李鹏，如果以后李鹏有什么事，记得给我打电话。</p>
+
+    <p>再后来，我们连出去玩都得偷偷摸摸的。可能那是你父母对你的保护，但对我们而言，那真是一块沉重的石头。我觉得这太糟糕了。我这种讨好型人格，不求人人喜欢，只希望大家别讨厌我。可能他们真的希望有一个知根知底的男生吧。没办法，我只能陪你走到这里了。</p>
+
+    <p>舍不得你，又和你结不成婚。我只想多陪你走一段路，明知不可为而为之。虽然彼此各有难处，但一起走过的日日夜夜让我觉得有爱就够了。我始终相信命运能让我们走到哪里就走到哪里。这一千多个日日夜夜的陪伴，我会永远记得。</p>
+
+    <p>就到这里了。以后我们只是不联系了，不再分享日常，不再频繁聊天，但我们从来都不是仇人。就算以后不同频，你我也是彼此人生里鲜活的回忆。</p>
+
+    <p>最后，我要特别感谢你在英国求学的那一年和我携手并进。它让平淡的日子多姿多彩，也让我领略了这个世界的不同。也许未来我再也不会像那一年那样绚丽多彩。虽差强人意，但重要的还是过程不是结果，对吧。</p>
+
+    <p class="hl">谢谢你曾经爱过我</p>
+
+    <p class="sign">—— 写信的人</p>
+
+    <div class="divider"></div>
+
+    <div class="footline">
+      <span>你一共试了 <b id="finalCount">0</b> 次</span>
+      <button id="againBtn">再解一次</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ===== 每次进入随机生成四位不重复数字的密码 ===== */
+  const SECRET = (function () {
+    const digits = ['0','1','2','3','4','5','6','7','8','9'];
+    // Fisher-Yates 洗牌
+    for (let i = digits.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [digits[i], digits[j]] = [digits[j], digits[i]];
+    }
+    return digits.slice(0, 4).join('');
+  })();
+
+  const input      = document.getElementById('guessInput');
+  const submitBtn  = document.getElementById('submitBtn');
+  const historyEl  = document.getElementById('history');
+  const gameCard   = document.getElementById('gameCard');
+  const letterCard = document.getElementById('letterCard');
+  const msgEl      = document.getElementById('msg');
+  const finalCount = document.getElementById('finalCount');
+  const againBtn   = document.getElementById('againBtn');
+
+  let attempts = 0;
+  let solved   = false;
+  let msgTimer = null;
+
+  /* ---------- 判分：B = 位置对，C = 数字对但位置错 ---------- */
+  function score(guess, secret) {
+    let b = 0, c = 0;
+    const g = guess.split('');
+    const s = secret.split('');
+
+    for (let i = 0; i < 4; i++) {
+      if (g[i] === s[i]) {
+        b++;
+        g[i] = null;
+        s[i] = null;
+      }
+    }
+
+    for (let i = 0; i < 4; i++) {
+      if (g[i] === null) continue;
+      for (let j = 0; j < 4; j++) {
+        if (s[j] === null) continue;
+        if (g[i] === s[j]) {
+          c++;
+          s[j] = null;
+          break;
+        }
+      }
+    }
+
+    return { b: b, c: c };
+  }
+
+  /* ---------- 提示 ---------- */
+  function showMsg(text) {
+    msgEl.textContent = text;
+    msgEl.classList.add('show');
+    clearTimeout(msgTimer);
+    msgTimer = setTimeout(function () {
+      msgEl.classList.remove('show');
+    }, 2000);
+  }
+
+  function shake(text) {
+    showMsg(text);
+    input.classList.remove('shake');
+    void input.offsetWidth;
+    input.classList.add('shake');
+    input.focus();
+  }
+
+  /* ---------- 写入历史记录 ---------- */
+  function addHistory(guess, b, c) {
+    const li = document.createElement('li');
+    li.className = 'hist-item';
+
+    const digits = guess.split('').map(function (d) {
+      return '<b>' + d + '</b>';
+    }).join('');
+
+    let tags = '';
+    if (b) tags += '<i class="tag b">' + b + 'B</i>';
+    if (c) tags += '<i class="tag c">' + c + 'C</i>';
+    if (!b && !c) tags += '<i class="tag none">全错</i>';
+
+    li.innerHTML =
+      '<span class="hist-index">' + attempts + '</span>' +
+      '<span class="hist-guess">' + digits + '</span>' +
+      '<span class="hist-fb">' + tags + '</span>';
+
+    historyEl.prepend(li);
+  }
+
+  /* ---------- 提交 ---------- */
+  function submit() {
+    if (solved) return;
+
+    const value = input.value.replace(/\D/g, '');
+
+    if (value.length !== 4) { shake('请输入 4 位数字'); return; }
+    if (new Set(value).size !== 4) { shake('四位数字不能重复'); return; }
+
+    const result = score(value, SECRET);
+    attempts++;
+    addHistory(value, result.b, result.c);
+
+    input.value = '';
+    input.focus();
+
+    if (result.b === 4) {
+      win();
+    } else {
+      if (result.b + result.c === 0) {
+        showMsg('一个数字都没蒙对……');
+      } else if (result.b === 3) {
+        showMsg('就差一点点。');
+      }
+    }
+  }
+
+  /* ---------- 成功 ---------- */
+  function win() {
+    solved = true;
+    finalCount.textContent = attempts;
+    input.disabled = true;
+    submitBtn.disabled = true;
+
+    gameCard.classList.add('closing');
+
+    setTimeout(function () {
+      gameCard.hidden = true;
+      letterCard.hidden = false;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 560);
+  }
+
+  /* ---------- 事件 ---------- */
+  input.addEventListener('input', function () {
+    input.value = input.value.replace(/\D/g, '').slice(0, 4);
+  });
+
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); submit(); }
+  });
+
+  submitBtn.addEventListener('click', submit);
+
+  againBtn.addEventListener('click', function () {
+    location.reload();
+  });
+
+  input.focus();
+})();
+</script>
+</body>
+</html>
